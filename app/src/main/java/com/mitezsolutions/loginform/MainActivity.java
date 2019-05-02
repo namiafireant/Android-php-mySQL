@@ -2,7 +2,9 @@ package com.mitezsolutions.loginform;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -28,23 +30,42 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Iterator;
 
-
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private ProgressDialog pDialog;
+    private String url;
+    boolean doubleBackToExitPressedOnce = false;
 
     EditText username, password;
     Button btn_login, btn_reset;
     TextView result;
     String getResult;
-    private ProgressDialog pDialog;
-    private String url; //"http://192.168.0.170/sample%20website/login.php";
+    Intent intent;
 
+    @Override
+    public void onBackPressed() {
+        if (doubleBackToExitPressedOnce) {
+            super.onBackPressed();
+            return;
+        }
+
+        this.doubleBackToExitPressedOnce = true;
+        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show();
+
+        new Handler().postDelayed(new Runnable() {
+
+            @Override
+            public void run() {
+                doubleBackToExitPressedOnce=false;
+            }
+        }, 2000);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        //initialize
         username = (EditText) findViewById(R.id.username);
         password = (EditText) findViewById(R.id.password);
 
@@ -64,8 +85,8 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this,"Please fill the form", Toast.LENGTH_LONG).show();
                 }
                 else{
-                    url = "http://192.168.49.74/sample%20website/testPost.php";
-                    new postLogin().execute();
+                    url = "http://172.16.59.39/sample%20website/login.php?email="+email+"&password="+pass;
+                    new getLogin().execute();
                 }
 
             }
@@ -95,16 +116,22 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String s) {
             super.onPostExecute(s);
-            result.setText(s);
-            getResult = s;
             pDialog.dismiss();
+
+            if (s.equals("success")){
+                intent = new Intent(MainActivity.this, NewMenu.class);
+                startActivity(intent);
+            }
+            else{
+                result.setText("cuba lagi");
+            }
         }
 
         @Override
         protected String doInBackground(String... strings) {
             Httphandler hp = new Httphandler();
             String output = hp.createConnection(url);
-            if (output != null){
+            if (!TextUtils.isEmpty(output)){
                 try {
                     JSONObject jsonObject = new JSONObject(output);
                     output = jsonObject.getString("message");
@@ -113,6 +140,9 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                     output = "error : "+e.getMessage();
                 }
+            }
+            else{
+                output = "empty";
             }
             return output;
         }
